@@ -8,12 +8,15 @@ const ICE_SERVERS = {
 };
 
 const useWebRTC = ({ socketRef, onConnectionStateChange }) => {
-  const localStreamRef  = useRef(null);
-  const peerRef         = useRef(null);
-  const localVideoRef   = useRef(null);
-  const remoteVideoRef  = useRef(null);
+  const localStreamRef = useRef(null);
+  const peerRef        = useRef(null);
+  const localVideoRef  = useRef(null);
+  const remoteVideoRef = useRef(null);
 
   const startLocalStream = useCallback(async () => {
+    // If stream already running, reuse it — don't request camera twice
+    if (localStreamRef.current) return localStreamRef.current;
+
     const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
     localStreamRef.current = stream;
     if (localVideoRef.current) localVideoRef.current.srcObject = stream;
@@ -21,8 +24,15 @@ const useWebRTC = ({ socketRef, onConnectionStateChange }) => {
   }, []);
 
   const buildPeer = useCallback((roomId) => {
+    // Close any existing peer before creating a new one (skip scenario)
+    if (peerRef.current) {
+      peerRef.current.close();
+      peerRef.current = null;
+    }
+
     const peer = new RTCPeerConnection(ICE_SERVERS);
 
+    // Tracks MUST be added before createOffer — stream must exist at this point
     localStreamRef.current
       ?.getTracks()
       .forEach((track) => peer.addTrack(track, localStreamRef.current));
@@ -40,8 +50,7 @@ const useWebRTC = ({ socketRef, onConnectionStateChange }) => {
       }
     };
 
-    peer.onconnectionstatechange = () =>
-      onConnectionStateChange?.(peer.connectionState);
+    peer.onconnectionstatechange = () => onConnectionStateChange?.(peer.connectionState);
 
     peerRef.current = peer;
     return peer;
@@ -54,22 +63,24 @@ const useWebRTC = ({ socketRef, onConnectionStateChange }) => {
     socketRef.current?.emit("signal", { roomId, signal: { type: "offer", sdp: offer } });
   }, [buildPeer, socketRef]);
 
-  const handleSignal = useCallback(async ({ signal }, roomId) => {
+  const handleSignal = useCallback(async ({ signal, roomId: sigRoomId }, roomId) => {
+    // Use roomId passed explicitly (from roomIdRef) — sigRoomId is a fallback
+    const rid  = roomId || sigRoomId;
     const peer = peerRef.current;
 
     if (signal.type === "offer") {
-      const pc = buildPeer(roomId);
+      const pc     = buildPeer(rid);
       await pc.setRemoteDescription(new RTCSessionDescription(signal.sdp));
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
-      socketRef.current?.emit("signal", { roomId, signal: { type: "answer", sdp: answer } });
+      socketRef.current?.emit("signal", { roomId: rid, signal: { type: "answer", sdp: answer } });
     } else if (signal.type === "answer" && peer) {
       await peer.setRemoteDescription(new RTCSessionDescription(signal.sdp));
     } else if (signal.type === "ice-candidate" && peer) {
       try {
         await peer.addIceCandidate(new RTCIceCandidate(signal.candidate));
       } catch (err) {
-        console.warn("[WebRTC] ICE candidate rejected:", err.message);
+        console.warn("[WebRTC] ICE candidate error:", err.message);
       }
     }
   }, [buildPeer, socketRef]);
@@ -95,16 +106,7 @@ const useWebRTC = ({ socketRef, onConnectionStateChange }) => {
     if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
   }, []);
 
-  return {
-    localVideoRef,
-    remoteVideoRef,
-    startLocalStream,
-    initiateCall,
-    handleSignal,
-    toggleAudio,
-    toggleVideo,
-    cleanup,
-  };
+  return { localVideoRef, remoteVideoRef, startLocalStream, initiateCall, handleSignal, toggleAudio, toggleVideo, cleanup };
 };
 
 export default useWebRTC;

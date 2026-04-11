@@ -6,62 +6,58 @@ import cors from "cors";
 import cookieParser from "cookie-parser";
 import jwt from "jsonwebtoken";
 import { connectDB } from "./db.js";
-import authRoutes from "./routes/auth.routes.js";
-import videoRoutes from "./routes/video.routes.js";
+import authRoutes    from "./routes/auth.routes.js";
+import videoRoutes   from "./routes/video.routes.js";
 import profileRoutes from "./routes/profile.routes.js";
 
-const app = express();
+const app        = express();
 const httpServer = createServer(app);
 
 const io = new Server(httpServer, {
-  cors: {
-    origin: process.env.CLIENT_URL || "http://localhost:5173",
-    methods: ["GET", "POST"],
-    credentials: true,
-  },
+  cors: { origin: process.env.CLIENT_URL || "http://localhost:5173", methods: ["GET", "POST"], credentials: true },
   pingTimeout: 60000,
   pingInterval: 25000,
 });
 
-app.use(
-  cors({
-    origin: process.env.CLIENT_URL || "http://localhost:5173",
-    credentials: true,
-  }),
-);
+app.use(cors({ origin: process.env.CLIENT_URL || "http://localhost:5173", credentials: true }));
 app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
-app.use("/api/auth", authRoutes);
-app.use("/api/video", videoRoutes);
+app.use("/api/auth",    authRoutes);
+app.use("/api/video",   videoRoutes);
 app.use("/api/profile", profileRoutes);
 
-app.get("/health", (_req, res) =>
-  res.json({ status: "ok", timestamp: new Date().toISOString() }),
-);
+app.get("/health", (_req, res) => res.json({ status: "ok", timestamp: new Date().toISOString() }));
 
-app.use((_req, res) => {
-  res.status(404).json({ success: false, message: "Route not found" });
-});
+app.use((_req, res) => res.status(404).json({ success: false, message: "Route not found" }));
 
+// eslint-disable-next-line no-unused-vars
 app.use((err, _req, res, _next) => {
   console.error("[ERROR]", err.stack || err.message);
-  const status = err.statusCode || 500;
-  const message =
-    status === 500 && process.env.NODE_ENV === "production"
-      ? "Internal server error"
-      : err.message || "Something went wrong";
+  const status  = err.statusCode || 500;
+  const message = status === 500 && process.env.NODE_ENV === "production"
+    ? "Internal server error" : err.message || "Something went wrong";
   res.status(status).json({ success: false, message });
 });
 
+// ── Socket.IO ─────────────────────────────────────────────────────────────────
 
 const VALID_MOODS = ["casual_chat", "study", "networking"];
-const moodQueues = new Map(VALID_MOODS.map((m) => [m, new Set()]));
-const activeRooms = new Map();
+// "any" queue handles users who skip mood selection (Omegle-style random)
+const ALL_QUEUES  = [...VALID_MOODS, "any"];
+const moodQueues  = new Map(ALL_QUEUES.map((m) => [m, new Set()]));
+const activeRooms = new Map(); // roomId → { peer1, peer2 }
 
 const generateRoomId = () =>
   `room_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
+
+// Broadcast current queue sizes to all connected clients
+const emitQueueCounts = () => {
+  const counts = {};
+  for (const mood of VALID_MOODS) counts[mood] = moodQueues.get(mood).size;
+  io.emit("queue_counts", counts);
+};
 
 io.use((socket, next) => {
   const token = socket.handshake.auth?.token;
@@ -69,25 +65,41 @@ io.use((socket, next) => {
     try {
       const decoded = jwt.verify(token, process.env.JWT_ACCESS_SECRET);
       socket.userId = decoded.userId;
-    } catch {
-    }
+    } catch { /* treat as anonymous */ }
   }
   socket.isAnonymous = !socket.userId;
   next();
 });
 
 io.on("connection", (socket) => {
-  socket.on("find_match", ({ mood } = {}) => {
-    if (!VALID_MOODS.includes(mood)) {
-      return socket.emit("error_event", { message: "Invalid mood" });
-    }
+  // Send fresh counts on every new connection
+  emitQueueCounts();
 
-    const queue = moodQueues.get(mood);
+  socket.on("find_match", ({ mood } = {}) => {
+    // If no mood or invalid, fall into the "any" random queue
+    const queueKey = VALID_MOODS.includes(mood) ? mood : "any";
+    const queue    = moodQueues.get(queueKey);
+
     if (queue.has(socket.id)) return;
 
-    if (queue.size > 0) {
-      const [peerId] = queue;
-      queue.delete(peerId);
+    // Try to match: first check same-mood queue, then "any" queue as fallback
+    const candidateQueues =
+      queueKey === "any"
+        ? [moodQueues.get("any")]
+        : [queue, moodQueues.get("any")];
+
+    let peerId = null;
+    let usedQueue = null;
+    for (const q of candidateQueues) {
+      if (q.size > 0) {
+        [peerId] = q;
+        usedQueue = q;
+        break;
+      }
+    }
+
+    if (peerId) {
+      usedQueue.delete(peerId);
 
       const roomId = generateRoomId();
       activeRooms.set(roomId, { peer1: peerId, peer2: socket.id });
@@ -95,34 +107,38 @@ io.on("connection", (socket) => {
       socket.join(roomId);
       io.sockets.sockets.get(peerId)?.join(roomId);
 
+      // peer1 is the WebRTC offer initiator
       io.to(peerId).emit("match_found", { roomId, initiator: true });
-      socket.emit("match_found", { roomId, initiator: false });
+      socket.emit("match_found",         { roomId, initiator: false });
     } else {
       queue.add(socket.id);
       socket.emit("waiting");
     }
+
+    emitQueueCounts();
   });
 
+  // Relay WebRTC offer / answer / ICE — roomId comes from the client payload
   socket.on("signal", ({ roomId, signal }) => {
-    socket.to(roomId).emit("signal", { signal, from: socket.id });
+    socket.to(roomId).emit("signal", { roomId, signal, from: socket.id });
   });
 
-  // Relay chat messages — never store them server-side
+  // Relay chat messages — never stored server-side
   socket.on("chat_message", ({ roomId, text, time }) => {
     socket.to(roomId).emit("chat_message", { text, time });
   });
 
   socket.on("skip", ({ roomId, mood }) => {
     leaveRoom(socket, roomId);
-    const queue = moodQueues.get(mood);
-    if (queue) {
-      queue.add(socket.id);
-      socket.emit("waiting");
-    }
+    const queueKey = VALID_MOODS.includes(mood) ? mood : "any";
+    moodQueues.get(queueKey).add(socket.id);
+    socket.emit("waiting");
+    emitQueueCounts();
   });
 
-  socket.on("cancel_match", () => {
+  socket.on("cancel_match", ({ mood } = {}) => {
     for (const queue of moodQueues.values()) queue.delete(socket.id);
+    emitQueueCounts();
   });
 
   socket.on("leave_room", ({ roomId }) => leaveRoom(socket, roomId));
@@ -136,11 +152,10 @@ io.on("connection", (socket) => {
         break;
       }
     }
+    emitQueueCounts();
   });
 
-  socket.on("error", (err) =>
-    console.error(`[Socket Error] ${socket.id}:`, err.message),
-  );
+  socket.on("error", (err) => console.error(`[Socket Error] ${socket.id}:`, err.message));
 });
 
 function leaveRoom(socket, roomId) {
@@ -156,9 +171,7 @@ const startServer = async () => {
   try {
     await connectDB();
     httpServer.listen(PORT, () =>
-      console.log(
-        `Server on port ${PORT}`,
-      ),
+      console.log(`🚀 Server on port ${PORT} [${process.env.NODE_ENV || "development"}]`)
     );
   } catch (err) {
     console.error("[FATAL]", err.message);
@@ -167,5 +180,4 @@ const startServer = async () => {
 };
 
 startServer();
-
 export { io };

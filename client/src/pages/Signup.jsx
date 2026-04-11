@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useDispatch, useSelector } from "react-redux";
+import { toast } from "react-toastify";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 import { faUser, faEnvelope, faLock, faEye, faEyeSlash, faShuffle } from "@fortawesome/free-solid-svg-icons";
 import { signupUser, clearError } from "../features/auth/authSlice";
@@ -13,14 +14,31 @@ export default function Signup() {
   const navigate = useNavigate();
 
   useEffect(() => { dispatch(clearError()); }, []);
-  useEffect(() => { if (isAuthenticated) navigate("/"); }, [isAuthenticated]);
+  useEffect(() => {
+    if (isAuthenticated) {
+      toast.success("Account created! Welcome 🎉");
+      navigate("/");
+    }
+  }, [isAuthenticated]);
+
+  useEffect(() => {
+    if (error) toast.error(error);
+  }, [error]);
 
   const set = (key) => (e) => setForm((f) => ({ ...f, [key]: e.target.value }));
 
+  const handleSubmit = () => {
+    if (!form.username || !form.email || !form.password) {
+      toast.error("Please fill in all fields");
+      return;
+    }
+    dispatch(signupUser(form));
+  };
+
   const fields = [
-    { key: "username", label: "Username",  type: "text",     icon: faUser,     placeholder: "cooluser_123" },
-    { key: "email",    label: "Email",     type: "email",    icon: faEnvelope, placeholder: "you@example.com" },
-    { key: "password", label: "Password",  type: "password", icon: faLock,     placeholder: "Min. 8 characters" },
+    { key: "username", label: "Username", type: "text",     icon: faUser,     placeholder: "cooluser_123" },
+    { key: "email",    label: "Email",    type: "email",    icon: faEnvelope, placeholder: "you@example.com" },
+    { key: "password", label: "Password", type: "password", icon: faLock,     placeholder: "Min. 8 characters" },
   ];
 
   return (
@@ -35,12 +53,6 @@ export default function Signup() {
         </div>
 
         <div className="bg-neutral-800 border border-neutral-700 rounded-2xl p-8">
-          {error && (
-            <div className="bg-red-900/30 border border-red-800 text-red-300 rounded-xl px-4 py-3 text-sm mb-6">
-              {error}
-            </div>
-          )}
-
           <div className="space-y-5">
             {fields.map(({ key, label, type, icon, placeholder }) => (
               <div key={key}>
@@ -51,15 +63,15 @@ export default function Signup() {
                     type={key === "password" && showPass ? "text" : type}
                     value={form[key]}
                     onChange={set(key)}
+                    onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
                     placeholder={placeholder}
-                    className="w-full bg-neutral-700 border border-neutral-600 text-white rounded-xl pl-10 pr-10 py-3 text-sm focus:outline-none focus:border-slate-500 transition"
-                    required
+                    className="cursor-text w-full bg-neutral-700 border border-neutral-600 text-white rounded-xl pl-10 pr-10 py-3 text-sm focus:outline-none focus:border-slate-500 transition"
                   />
                   {key === "password" && (
                     <button
                       type="button"
                       onClick={() => setShowPass((p) => !p)}
-                      className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-neutral-300 transition"
+                      className="cursor-pointer absolute right-3 top-1/2 -translate-y-1/2 text-neutral-500 hover:text-neutral-300 transition"
                     >
                       <FontAwesomeIcon icon={showPass ? faEyeSlash : faEye} className="text-sm" />
                     </button>
@@ -69,9 +81,9 @@ export default function Signup() {
             ))}
 
             <button
-              onClick={() => dispatch(signupUser(form))}
+              onClick={handleSubmit}
               disabled={loading}
-              className="w-full bg-slate-700 hover:bg-slate-600 disabled:opacity-50 text-white font-semibold py-3 rounded-xl transition"
+              className="cursor-pointer w-full bg-slate-700 hover:bg-slate-600 disabled:opacity-50 text-white font-semibold py-3 rounded-xl transition"
             >
               {loading ? "Creating account…" : "Create Account"}
             </button>
@@ -79,12 +91,12 @@ export default function Signup() {
 
           <p className="text-center text-neutral-400 text-sm mt-6">
             Already have an account?{" "}
-            <Link to="/login" className="text-slate-400 hover:text-white transition">Sign in</Link>
+            <Link to="/login" className="cursor-pointer text-slate-400 hover:text-white transition">Sign in</Link>
           </p>
         </div>
 
         <p className="text-center text-neutral-500 text-xs mt-4">
-          <Link to="/video" className="hover:text-neutral-300 transition">Continue as guest →</Link>
+          <Link to="/video" className="cursor-pointer hover:text-neutral-300 transition">Continue as guest →</Link>
         </p>
       </div>
     </div>

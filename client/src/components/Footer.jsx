@@ -1,6 +1,6 @@
 import { Link } from "react-router-dom";
 import { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
-import { faShuffle, faShield, faFileAlt } from "@fortawesome/free-solid-svg-icons";
+import { faShuffle, faHeart } from "@fortawesome/free-solid-svg-icons";
 
 export default function Footer() {
   return (
@@ -25,29 +25,23 @@ export default function Footer() {
               ["/signup", "Create Account"],
             ].map(([to, label]) => (
               <li key={to}>
-                <Link to={to} className="hover:text-white transition">{label}</Link>
+                <Link to={to} className="cursor-pointer hover:text-white transition">{label}</Link>
               </li>
             ))}
           </ul>
         </div>
 
         <div>
-          <h4 className="text-white font-semibold mb-3 text-sm uppercase tracking-wide">Legal</h4>
-          <ul className="space-y-2 text-sm text-neutral-400">
-            <li className="flex items-center gap-2">
-              <FontAwesomeIcon icon={faShield} className="text-xs" />
-              Privacy Policy
-            </li>
-            <li className="flex items-center gap-2">
-              <FontAwesomeIcon icon={faFileAlt} className="text-xs" />
-              Terms of Service
-            </li>
-          </ul>
+          <h4 className="text-white font-semibold mb-3 text-sm uppercase tracking-wide">About</h4>
+          <p className="text-neutral-400 text-sm leading-relaxed flex items-start gap-2">
+            <FontAwesomeIcon icon={faHeart} className="text-slate-400 mt-0.5 shrink-0" />
+            Built by Anonymous Users — for anyone who wants a real conversation without labels.
+          </p>
         </div>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 border-t border-neutral-700 mt-10 pt-6 text-center text-neutral-500 text-sm">
-        © {new Date().getFullYear()} RandomRoulette. All rights reserved.
+        © {new Date().getFullYear()} RandomRoulette · Built by Anonymous Users
       </div>
     </footer>
   );
