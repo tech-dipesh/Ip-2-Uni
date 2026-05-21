@@ -14,7 +14,7 @@ const useWebRTC = ({ socketRef, onConnectionStateChange }) => {
   const remoteVideoRef = useRef(null);
 
   const startLocalStream = useCallback(async () => {
-    // If stream already running, reuse it — don't request camera twice
+    
     if (localStreamRef.current) return localStreamRef.current;
 
     const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
@@ -24,7 +24,7 @@ const useWebRTC = ({ socketRef, onConnectionStateChange }) => {
   }, []);
 
   const buildPeer = useCallback((roomId) => {
-    // Close any existing peer before creating a new one (skip scenario)
+
     if (peerRef.current) {
       peerRef.current.close();
       peerRef.current = null;
@@ -32,7 +32,6 @@ const useWebRTC = ({ socketRef, onConnectionStateChange }) => {
 
     const peer = new RTCPeerConnection(ICE_SERVERS);
 
-    // Tracks MUST be added before createOffer — stream must exist at this point
     localStreamRef.current
       ?.getTracks()
       .forEach((track) => peer.addTrack(track, localStreamRef.current));
@@ -64,7 +63,7 @@ const useWebRTC = ({ socketRef, onConnectionStateChange }) => {
   }, [buildPeer, socketRef]);
 
   const handleSignal = useCallback(async ({ signal, roomId: sigRoomId }, roomId) => {
-    // Use roomId passed explicitly (from roomIdRef) — sigRoomId is a fallback
+
     const rid  = roomId || sigRoomId;
     const peer = peerRef.current;
 

@@ -24,7 +24,6 @@ export default function Chat() {
   const [msgInput, setMsgInput]   = useState("");
   const [showEmoji, setShowEmoji] = useState(false);
 
-  // roomId in a ref to avoid stale closures in socket listeners
   const roomIdRef      = useRef(null);
   const socketRef      = useRef(null);
   const messagesEndRef = useRef(null);

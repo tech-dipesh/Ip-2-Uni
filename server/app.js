@@ -32,7 +32,6 @@ app.get("/health", (_req, res) => res.json({ status: "ok", timestamp: new Date()
 
 app.use((_req, res) => res.status(404).json({ success: false, message: "Route not found" }));
 
-// eslint-disable-next-line no-unused-vars
 app.use((err, _req, res, _next) => {
   console.error("[ERROR]", err.stack || err.message);
   const status  = err.statusCode || 500;
@@ -41,18 +40,16 @@ app.use((err, _req, res, _next) => {
   res.status(status).json({ success: false, message });
 });
 
-// ── Socket.IO ─────────────────────────────────────────────────────────────────
 
 const VALID_MOODS = ["casual_chat", "study", "networking"];
-// "any" queue handles users who skip mood selection (Omegle-style random)
+
 const ALL_QUEUES  = [...VALID_MOODS, "any"];
 const moodQueues  = new Map(ALL_QUEUES.map((m) => [m, new Set()]));
-const activeRooms = new Map(); // roomId → { peer1, peer2 }
+const activeRooms = new Map();
 
 const generateRoomId = () =>
   `room_${Date.now()}_${Math.random().toString(36).slice(2, 7)}`;
 
-// Broadcast current queue sizes to all connected clients
 const emitQueueCounts = () => {
   const counts = {};
   for (const mood of VALID_MOODS) counts[mood] = moodQueues.get(mood).size;
@@ -72,17 +69,16 @@ io.use((socket, next) => {
 });
 
 io.on("connection", (socket) => {
-  // Send fresh counts on every new connection
+
   emitQueueCounts();
 
   socket.on("find_match", ({ mood } = {}) => {
-    // If no mood or invalid, fall into the "any" random queue
+
     const queueKey = VALID_MOODS.includes(mood) ? mood : "any";
     const queue    = moodQueues.get(queueKey);
 
     if (queue.has(socket.id)) return;
 
-    // Try to match: first check same-mood queue, then "any" queue as fallback
     const candidateQueues =
       queueKey === "any"
         ? [moodQueues.get("any")]
@@ -118,12 +114,11 @@ io.on("connection", (socket) => {
     emitQueueCounts();
   });
 
-  // Relay WebRTC offer / answer / ICE — roomId comes from the client payload
+
   socket.on("signal", ({ roomId, signal }) => {
     socket.to(roomId).emit("signal", { roomId, signal, from: socket.id });
   });
 
-  // Relay chat messages — never stored server-side
   socket.on("chat_message", ({ roomId, text, time }) => {
     socket.to(roomId).emit("chat_message", { text, time });
   });
@@ -170,11 +165,10 @@ const PORT = process.env.PORT || 8000;
 const startServer = async () => {
   try {
     await connectDB();
-    httpServer.listen(PORT, () =>
-      console.log(`🚀 Server on port ${PORT} [${process.env.NODE_ENV || "development"}]`)
-    );
-  } catch (err) {
-    console.error("[FATAL]", err.message);
+    httpServer.listen(PORT, () => {
+      console.log(`Server Listening on port ${PORT}`);
+    });  } catch (err) {
+  console.error("[FATAL]", err.message);
     process.exit(1);
   }
 };

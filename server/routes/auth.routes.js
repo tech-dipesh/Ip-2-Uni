@@ -17,8 +17,6 @@ const createTokens = (userId) => ({
   refreshToken: jwt.sign({ userId }, process.env.JWT_REFRESH_SECRET, { expiresIn: "7d"  }),
 });
 
-// FIX: sameSite "none" requires secure:true — on localhost secure is false so the
-// browser silently drops the cookie.  Use "lax" in dev, "none" in prod (behind HTTPS).
 const cookieBase = () => {
   const isProd = process.env.NODE_ENV === "production";
   return {
@@ -80,7 +78,6 @@ router.post("/login", async (req, res, next) => {
     );
     const user = rows[0];
 
-    // Always run compare to prevent timing-based user enumeration
     const dummy = "$2a$12$invaliddummyhashfortimingonly00";
     const match = await bcrypt.compare(password, user ? user.password_hash : dummy);
 

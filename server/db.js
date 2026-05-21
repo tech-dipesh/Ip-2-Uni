@@ -21,7 +21,7 @@ const pool = new Pool({
 
 pool.on("error", (err) => console.error("[DB Pool Error]", err.message));
 
-// Reads migration files in alphabetical order, skips already-ran ones
+
 const runMigrations = async (client) => {
   await client.query(`
     CREATE TABLE IF NOT EXISTS _migrations (

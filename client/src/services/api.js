@@ -7,8 +7,7 @@ const api = axios.create({
   withCredentials: true,
 });
 
-// On 401, silently attempt a token refresh once then retry the original request.
-// If the refresh also fails, redirect to login.
+
 api.interceptors.response.use(
   (res) => res,
   async (err) => {

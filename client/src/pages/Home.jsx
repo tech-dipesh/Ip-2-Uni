@@ -24,7 +24,6 @@ const STEPS = [
 export default function Home() {
   return (
     <div className="flex flex-col">
-      {/* ── Hero ─────────────────────────────────────────────────────────────── */}
       <section className="flex flex-col items-center justify-center text-center px-4 py-28 md:py-40">
         <div className="inline-flex items-center gap-2 bg-neutral-800 border border-neutral-700 rounded-full px-4 py-1.5 text-xs text-neutral-400 mb-6">
           <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
@@ -58,7 +57,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── How it works ─────────────────────────────────────────────────────── */}
       <section className="bg-neutral-800 py-20 px-4">
         <div className="max-w-5xl mx-auto">
           <h2 className="text-3xl md:text-4xl font-bold text-white text-center mb-3">How it works</h2>
@@ -78,7 +76,6 @@ export default function Home() {
         </div>
       </section>
 
-      {/* ── Features ─────────────────────────────────────────────────────────── */}
       <section className="py-20 px-4">
         <div className="max-w-6xl mx-auto">
           <h2 className="text-3xl md:text-4xl font-bold text-white text-center mb-3">Everything you need</h2>

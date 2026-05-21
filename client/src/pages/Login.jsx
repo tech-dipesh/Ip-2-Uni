@@ -21,7 +21,7 @@ export default function Login() {
     }
   }, [isAuthenticated]);
 
-  // Show error toast whenever Redux error changes
+
   useEffect(() => {
     if (error) toast.error(error);
   }, [error]);

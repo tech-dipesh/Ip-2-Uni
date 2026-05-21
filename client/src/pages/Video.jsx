@@ -107,9 +107,7 @@ export default function Video() {
       socket.disconnect();
       cleanup();
     };
-  }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Keep endSession accessible inside socket.on("peer_left") via ref
+  }, [user?.id]);
   const endSessionRef = useRef(null);
   const endSession = async (status = "ended", isSaved = false) => {
     if (!sessionId) return;
@@ -120,7 +118,6 @@ export default function Video() {
 
   const handleFindMatch = async () => {
     try {
-      // Start stream here — only once, before entering the queue
       await startLocalStream();
     } catch {
       toast.error("Camera/mic access denied. Please allow permissions.");

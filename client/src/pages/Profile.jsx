@@ -12,11 +12,9 @@ export default function Profile() {
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState(null);
 
-  // /profile (no username) = own profile, requires auth
   const isOwnProfile = !username;
 
   useEffect(() => {
-    // Don't even try the API if it's /profile and user is logged out
     if (isOwnProfile && !isAuthenticated) {
       setLoading(false);
       return;
@@ -42,7 +40,6 @@ export default function Profile() {
     </div>
   );
 
-  // Logged-out user visiting /profile — show a clean prompt instead of raw error
   if (isOwnProfile && !isAuthenticated) return (
     <div className="flex-1 flex items-center justify-center px-4">
       <div className="w-full max-w-sm bg-neutral-800 border border-neutral-700 rounded-2xl p-8 text-center">
