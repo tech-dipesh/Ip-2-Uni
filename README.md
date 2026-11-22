@@ -7,6 +7,17 @@ RandomRoulette is a real-time platform for meeting strangers through video calls
   <em>Choose a mood or join the general queue.</em>
 </p>
 
+## Run Locally:
+### Frontend:
+1. Go to a `cd client` And copy a: `cp .env.example .env`
+2. Fill two env variables of ws and a server url
+3. Run: `pnpm run dev` # It's running on the `localhost:5173`
+
+### Backend:
+1. Go to a `cd server` And copy a: `cp .env.example .env`
+2. Fill our db env variable and also a jwt access refrsh token with also a port
+3. Run: `pnpm run dev` # Which run's on the: `localhost:8000`
+
 ## How Matching Works
 
 Users select a mood such as casual chat, study, or networking, then join the matching queue. Live queue counts show how many people are waiting.
