@@ -1,68 +1,75 @@
 # RandomRoulette
+RandomRoulette is a real-time platform for meeting strangers through video calls or text chat. Users join a shared queue, choose an optional mood, and get matched with someone waiting online. No swiping, profiles, or lengthy setup.
 
-A stranger picks up. A camera blinks on. Somewhere else in the world, someone was also just staring at a "find a match" button, also not sure who'd show up. That's the whole premise here — no profiles to swipe, no algorithm pretending it knows you, just a room, a mood, and whoever else is waiting in that same queue right now.
 <p align="center">
   <img src="./docs/homepage.png" width="800" alt="Mood and interest picker before a call starts" />
-  <br/><em>Choosing a mood is optional — leave it blank and you're matched with anyone online.</em>
+  <br/>
+  <em>Choose a mood or join the general queue.</em>
 </p>
 
-## The shape of a session
+## How Matching Works
 
-You land, you optionally pick a vibe — casual chat, study, networking, or nothing at all — and the app tells you, live, how many other people are sitting in that same queue. Not a static "join now" button into a void. A number that moves.
+Users select a mood such as casual chat, study, or networking, then join the matching queue. Live queue counts show how many people are waiting.
 
-Hit find, and the matching happens on the server the moment two compatible sockets exist: your mood's queue first, then the general pool if nobody's there yet. First match wins, room gets created, and one side becomes the WebRTC offer initiator without either of you needing to know or care which one you are.
+The server matches users from the selected mood queue first, then checks the general queue. Once two users match, a room is created and WebRTC signaling begins.
+
+## Video Calling and Chat
 
 <p align="center">
   <img src="./docs/chat-page.png" width="800" alt="Active video call with chat sidebar" />
-  <br/><em>Full video on the left, your own feed tucked in the corner, live chat on the right.</em>
+  <br/>
+  <em>Video calling with picture-in-picture and live chat.</em>
 </p>
 
-## What is Happenindg on the Video Call:
-The call itself sits at 70/30 — their video takes the room, yours rides along as a small picture-in-picture, and a chat panel sits alongside it for anything that's easier typed than said. Mute, camera off, skip, end, save, report — all one row of controls along the bottom, all reachable without hunting.
+Video calls use a 70/30 layout with the remote video, local preview, and chat panel. Users have controls for muting, disabling the camera, skipping, ending, saving, and reporting a session.
 
-Skip doesn't dump you back to a menu. It quietly re-queues you into the same mood you started with, so the rhythm of "talk, skip, talk again" will never breaks. Save keeps someone in your history on purpose, for the rare match worth remembering. Report exists for the opposite reason, and it actually costs the reported person reputation — not a black hole complaint box.
+Skipping places the user back in the same mood queue. Ending a call opens a session summary where users can save or report the match.
 
-## Under the hood, briefly
-The video/audio itself never touches the server — it's peer-to-peer WebRTC, the way it should be for a two-person call. The server's only job in that exchange is introductions: pairing two sockets, then getting out of the way while offer, answer, and ICE candidates pass through it just long enough to establish the direct connection.
+## Chat-Only Mode
 
-Everything that *should* persist does — sessions, reputations, reports — sitting in Postgres behind a small Express API, with the schema arriving as plain, readable `.sql` migration files that run themselves on boot. Nothing fancy, nothing hidden behind an ORM you'd have to reverse-engineer to understand what's actually in the database.
+Users who prefer text conversations can join a separate chat-only mode. It shares the same matching queues, live counts, and skip functionality without requiring camera or microphone access.
+
+Both video and text chat are available as independent options.
+
+## User Reputation
 
 <p align="center">
   <img src="./docs/screenshot-profile.png" width="800" alt="User profile with reputation score" />
-  <br/><em>A reputation score, not a follower count — earned from how sessions actually go.</em>
+  <br/>
+  <em>User reputation based on reported behavior.</em>
 </p>
 
-## Reputation, not popularity
+Every user starts with a reputation score of 100. Reports reduce the reported user's score. Profiles display the current score without exposing who submitted a report.
 
-Most "talk to strangers" apps have no memory of how someone behaved last time. This one does, quietly. Every user starts at a clean 100. Get reported, lose a few points. It's not public shaming — there's no visible history of who reported whom — just a single number, color-coded on a profile, that gives the next person you match with a rough sense of whether this stranger has been reported to have caused problems.
+## Anonymous and Account-Based Access
 
-## Two ways in, same instincts
+Users can join anonymously without creating an account. Registered users get access to conversation history, saved users, and their reputation profile.
 
-Not everyone wants to be on camera. The chat-only mode shares the exact same matching logic — mood queues, live counts, skip-to-requeue — but strips the WebRTC layer out entirely, so it loads faster and asks nothing of your camera or microphone. Same stranger-finding heart, lighter body.
+Accounts remain optional. Users do not need email verification or a profile photo before starting a conversation.
 
-## Two doors into the same room
+## WebRTC and Signaling
 
-Video and chat-only aren't ranked — the nav bar lists "Join Video Call" and "Chat Someone" side by side, same size, same weight, because neither is the fallback version of the other. Someone on a train with no headphones and someone at home with good lighting are both having a real conversation with a stranger; the app just meets each of them where they actually are.
+Video and audio streams use peer-to-peer WebRTC connections. The Express server handles matchmaking and signaling by exchanging session descriptions and ICE candidates.
 
-## Anonymous by default, accountable when it matters
+Media streams stay between connected peers rather than passing through the application server. Connection setup depends on NAT traversal and network conditions.
 
-You don't need an account to talk to someone. Anonymous mode exists for exactly that — jump in, have the conversation, leave no trace tied to an identity. Accounts exist for the people who want continuity: a history of who they talked to, a reputation worth protecting, a profile worth coming back to. Neither path is treated as the "real" one.
+## Backend and Database
 
-## What you're not asked for
+The backend uses Express and PostgreSQL. Database schemas are maintained through plain SQL migration files that run during application startup.
 
-No email verification wall before you can talk to someone. No mandatory profile photo. No "tell us about yourself" essay box. The only thing standing between opening the app and being on a call with a stranger is a single click — everything else, the account, the reputation, the saved history, is optional infrastructure for people who decide they want it after the fact, not a toll booth before the first conversation.
+Persistent records include sessions, user reputation, reports, and conversation history.
 
-## The queue is honest about itself
+## Session Records
 
-There's no fake "1,204 people online" banner. The number you see next to each mood is the actual size of that mood's waiting set on the server at that moment — it goes up when someone joins, down the instant they're matched or they cancel. If a mood is quiet at 3am, the app shows you a quiet queue instead of manufacturing urgency that isn't there.
+Each completed session stores basic metadata such as duration, selected mood, and session outcome. These records support conversation history and reputation updates.
 
-## Why a signaling server instead of a video SDK
+No call recordings or transcripts are stored.
 
-It would have been faster to bolt on a third-party video SDK and call it done. The tradeoff wasn't taken lightly — running your own signaling layer means owning the offer/answer/ICE dance yourself, understanding why a connection state flips to `failed`, and accepting that NAT traversal is sometimes just going to lose. What it buys back is control: no per-minute billing tied to how many strangers happen to talk to each other today, and no black box between two people's actual video streams.
-
-## The moment a call ends
-
-Nothing lingers awkwardly. Skip re-queues instantly. End drops you to a calm, deliberate "session ended" screen rather than snapping you back into the queue mid-thought — a small pause between one stranger and the next, on purpose. Save and report both fire in that same window, because that's the only moment either action makes sense: right after, while it's still fresh.
-
-## Sessions as evidence, not surveillance
-Every call leaves a small traces that i left behind — how long it ran, what mood it was matched under, whether it ended cleanly or got skipped. That trace exists for exactly two reasons: so reputation has something real to stand on, and so a user can look back at their own history if they want to. It isn't a transcript, it isn't a recording, and it isn't shared with the other person. Just a timestamp and an outcome.
+## Tech Stack
+- Frontend: React
+- Backend: Node.js, Express
+- Database: PostgreSQL
+- Real-time communication: WebSockets
+- Video and audio: WebRTC
+- Signaling: Custom WebRTC signaling server
+- Database migrations: SQL
