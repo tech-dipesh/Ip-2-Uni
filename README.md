@@ -45,7 +45,7 @@ Both video and text chat are available as independent options.
 ## User Reputation
 
 <p align="center">
-  <img src="./docs/screenshot-profile.png" width="800" alt="User profile with reputation score" />
+  <img src="./docs/chat.png" width="800" alt="User profile with reputation score" />
   <br/>
   <em>User reputation based on reported behavior.</em>
 </p>

@@ -318,7 +318,7 @@ export default function Video() {
         />
 
         {/* Controls */}
-        <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent px-4 py-4 flex items-center justify-center gap-2 flex-wrap">
+        <div className="absolute bottom-0 left-0 right-0 bg-linear-to-t from-black/80 to-transparent px-4 py-4 flex items-center justify-center gap-2 flex-wrap">
           <Btn icon={isMuted   ? faMicrophoneSlash : faMicrophone}
             onClick={() => { const e = toggleAudio(); setIsMuted(!e); }}
             label={isMuted ? "Unmute" : "Mute"} active={isMuted} />
@@ -333,7 +333,7 @@ export default function Video() {
       </div>
 
       {/* Chat sidebar — 30% */}
-      <div className="w-[30%] min-w-[240px] max-w-xs bg-neutral-800 border-l border-neutral-700 flex flex-col">
+      <div className="w-[30%] min-w-60 max-w-xs bg-neutral-800 border-l border-neutral-700 flex flex-col">
         <div className="px-4 py-3 border-b border-neutral-700 flex items-center gap-2">
           <FontAwesomeIcon icon={faComments} className="text-slate-400 text-sm" />
           <span className="text-white font-semibold text-sm">Live Chat</span>

@@ -1,8 +1,8 @@
 {
   "type": "module",
   "scripts": {
-    "start": "nodemon app.js",
-    "dev": "nodemon app.js"
+    "start": "node app.js",
+    "dev": "bun --watch app.js"
   },
   "dependencies": {
     "bcryptjs": "^2.4.3",
