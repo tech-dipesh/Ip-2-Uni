@@ -73,3 +73,9 @@ No call recordings or transcripts are stored.
 - Video and audio: WebRTC
 - Signaling: Custom WebRTC signaling server
 - Database migrations: SQL
+
+## Contributor:
+- Dipendra Sharma (Core DEv)
+- Bhupendra Saud
+
+Thanks.

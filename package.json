@@ -1,0 +1,6 @@
+{
+  "scripts": {
+    "back": "cd server && nodemon app.js",
+    "front":  "pn run dev --prefix client"
+  }
+}
